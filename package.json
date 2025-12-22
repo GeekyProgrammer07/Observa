@@ -13,6 +13,7 @@
     "@nx/vite": "22.3.1",
     "@nx/vitest": "22.3.1",
     "@nx/web": "22.3.1",
+    "@nxrs/cargo": "^0.6.2",
     "@swc-node/register": "~1.9.1",
     "@swc/cli": "~0.6.0",
     "@swc/core": "~1.15.7",

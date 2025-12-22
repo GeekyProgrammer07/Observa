@@ -57,7 +57,8 @@
         "ciTargetName": "test-ci",
         "testMode": "watch"
       }
-    }
+    },
+    "@nxrs/cargo"
   ],
   "targetDefaults": {
     "test": {
