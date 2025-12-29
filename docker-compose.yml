@@ -1,0 +1,15 @@
+services:
+  postgres:
+    image: postgres:latest
+    container_name: observa_db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: mysecret
+      POSTGRES_DB: observa-main
+    ports:
+      - '5432:5432'
+    volumes:
+      - observa_data:/var/lib/postgresql/data
+
+volumes:
+  observa_data:
