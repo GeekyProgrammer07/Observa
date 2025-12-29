@@ -47,3 +47,9 @@ vite.config.*.timestamp*
 vitest.config.*.timestamp*/target
 
 /target
+
+# Environment variable files
+.env
+.env.*
+!.env.example
+!.env.sample
