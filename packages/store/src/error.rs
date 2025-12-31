@@ -1,5 +1,6 @@
 use diesel::ConnectionError;
 
+#[derive(Debug)]
 pub enum StoreError {
     Env(dotenvy::Error),
     Db(ConnectionError),

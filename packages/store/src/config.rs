@@ -6,7 +6,7 @@ pub struct Config {
 
 impl Config {
     pub fn from_env() -> Result<Self, StoreError> {
-        dotenvy::from_filename("../../..")?;
+        dotenvy::dotenv()?;
         let db_url = dotenvy::var("DATABASE_URL")?;
         Ok(Self { db_url })
     }
