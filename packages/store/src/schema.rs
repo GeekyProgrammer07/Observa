@@ -27,12 +27,12 @@ diesel::table! {
     use super::sql_types::AlertType;
 
     alert (id) {
-        id -> Text,
+        id -> Uuid,
         #[sql_name = "type"]
         type_ -> AlertType,
         message -> Text,
         sent_at -> Timestamp,
-        monitor_id -> Text,
+        monitor_id -> Uuid,
     }
 }
 
@@ -41,24 +41,24 @@ diesel::table! {
     use super::sql_types::MonitorStatus;
 
     checks (id) {
-        id -> Text,
+        id -> Uuid,
         response_time_ms -> Int4,
         status -> MonitorStatus,
-        region_id -> Text,
-        monitor_id -> Text,
+        region_id -> Uuid,
+        monitor_id -> Uuid,
         created_at -> Timestamp,
     }
 }
 
 diesel::table! {
     monitor (id) {
-        id -> Text,
+        id -> Uuid,
         url -> Text,
         name -> Nullable<Text>,
         interval -> Int4,
         timeout_ms -> Int4,
         is_paused -> Bool,
-        user_id -> Text,
+        user_id -> Uuid,
         created_at -> Timestamp,
     }
 }
@@ -68,8 +68,8 @@ diesel::table! {
     use super::sql_types::ChannelType;
 
     notification_channel (id) {
-        id -> Text,
-        user_id -> Text,
+        id -> Uuid,
+        user_id -> Uuid,
         #[sql_name = "type"]
         type_ -> ChannelType,
         value -> Text,
@@ -80,16 +80,16 @@ diesel::table! {
 
 diesel::table! {
     region (id) {
-        id -> Text,
+        id -> Uuid,
         name -> Text,
     }
 }
 
 diesel::table! {
     status_page (id) {
-        id -> Text,
+        id -> Uuid,
         slug -> Text,
-        user_id -> Text,
+        user_id -> Uuid,
         is_public -> Bool,
     }
 }
@@ -100,8 +100,8 @@ diesel::table! {
     use super::sql_types::SubscriptionStatus;
 
     subscription (id) {
-        id -> Text,
-        user_id -> Text,
+        id -> Uuid,
+        user_id -> Uuid,
         plan -> PlanType,
         status -> SubscriptionStatus,
         starts_at -> Timestamp,
@@ -111,7 +111,7 @@ diesel::table! {
 
 diesel::table! {
     user (id) {
-        id -> Text,
+        id -> Uuid,
         firstname -> Text,
         lastname -> Text,
         username -> Text,

@@ -1,9 +1,9 @@
-use poem::{post, Route};
+use poem::{Route, get, post};
 
-use crate::handlers::create_website;
+use crate::handlers::{create_website, signup};
 
 pub fn api_v1_routes() -> Route {
-    Route::new().at("/create", post(create_website))
+    Route::new().at("/signup", post(signup))
 }
 
 pub fn routes() -> Route {
