@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use uuid::Uuid;
 
 #[derive(Deserialize)]
 pub struct CreateWebsiteRequest {
@@ -20,5 +21,7 @@ pub struct SignupRequest {
 
 #[derive(Serialize)]
 pub struct SignupResponse {
-    pub message: String,
+    pub id: Uuid,
+    pub username: String,
+    pub token: String,
 }

@@ -1,20 +1,26 @@
-use poem::{get, listener::TcpListener, Result, Server};
+use std::sync::Arc;
+
+use poem::{get, listener::TcpListener, EndpointExt, Result, Server};
 use store::store::Store;
 
-use crate::handlers::health_check;
+use crate::handlers::health::health_check;
 
+mod config;
+mod error;
 mod handlers;
 mod models;
 mod routes;
+mod auth;
 
 #[tokio::main]
 async fn main() -> Result<(), std::io::Error> {
-    let app = routes::routes().at("/", get(health_check));
+    let store = Arc::new(Store::new().expect("Failed to initialize Store"));
+    let config = Arc::new(config::Config::from_env().expect("Invalid Config"));
 
-    let mut conn = Store::connect().unwrap_or_else(|err| panic!("database conn error: {:?}", err));
-
-    // Store::create_user(&mut conn);
-
+    let app = routes::routes()
+        .at("/", get(health_check))
+        .data(store)
+        .data(config);
     Server::new(TcpListener::bind("0.0.0.0:3000"))
         .name("hello-world")
         .run(app)
