@@ -37,7 +37,17 @@ impl Store {
         let user = insert_into(user::table)
             .values(&new_user)
             .returning(User::as_returning())
-            .get_result(conn)?;
+            .get_result(conn)
+            .map_err(|err| match err {
+                diesel::result::Error::DatabaseError(
+                    diesel::result::DatabaseErrorKind::UniqueViolation,
+                    _,
+                ) => StoreError::Conflict,
+
+                diesel::result::Error::NotFound => StoreError::NotFound,
+
+                _ => StoreError::Internal,
+            })?;
 
         Ok(user)
     }

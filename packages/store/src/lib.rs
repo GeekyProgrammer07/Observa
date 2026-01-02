@@ -1,5 +1,5 @@
 mod config;
-mod error;
+pub mod error;
 pub mod models;
 mod schema;
 pub mod store;
