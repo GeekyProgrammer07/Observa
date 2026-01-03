@@ -22,6 +22,18 @@ pub struct SignupRequest {
 #[derive(Serialize)]
 pub struct SignupResponse {
     pub id: Uuid,
+    pub message: String,
+}
+
+#[derive(Deserialize)]
+pub struct SigninRequest {
     pub username: String,
-    pub token: String,
+    pub password: String,
+}
+
+#[derive(Serialize)]
+pub struct SigninResponse {
+    pub access_token: String,
+    pub token_type: String,
+    pub expires_in: usize,
 }

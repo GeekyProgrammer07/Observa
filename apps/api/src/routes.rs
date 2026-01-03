@@ -1,10 +1,11 @@
-use poem::{Route, post};
+use poem::{post, Route};
 
-use crate::handlers::auth::signup;
-
+use crate::handlers::auth::{signin, signup};
 
 pub fn api_v1_routes() -> Route {
-    Route::new().at("/signup", post(signup))
+    Route::new()
+        .at("/signup", post(signup))
+        .at("/signin", post(signin))
 }
 
 pub fn routes() -> Route {

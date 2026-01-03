@@ -8,7 +8,7 @@ use argon2::{
 use chrono::{Duration, NaiveDateTime, Utc};
 use diesel::{
     ExpressionMethods, PgConnection, RunQueryDsl, Selectable,
-    dsl::{insert_into, update},
+    dsl::{delete, insert_into, update},
     prelude::{Insertable, Queryable},
     query_dsl::methods::FilterDsl,
 };
@@ -39,6 +39,10 @@ pub struct NewSession {
 impl Session {
     pub fn create_refresh_token(conn: &mut PgConnection, uid: Uuid) -> Result<String, StoreError> {
         use crate::schema::session;
+
+        delete(session::table.filter(session::user_id.eq(uid)))
+            .execute(conn)
+            .map_err(|_| StoreError::Internal)?;
 
         let token = Session::generate_secure_token();
         let hash = Session::hash_refresh_token(&token)?;
