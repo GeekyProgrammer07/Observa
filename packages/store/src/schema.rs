@@ -86,6 +86,16 @@ diesel::table! {
 }
 
 diesel::table! {
+    session (id) {
+        id -> Uuid,
+        user_id -> Uuid,
+        refresh_token -> Text,
+        expires_at -> Timestamp,
+        created_at -> Timestamp,
+    }
+}
+
+diesel::table! {
     status_page (id) {
         id -> Uuid,
         slug -> Text,
@@ -125,6 +135,7 @@ diesel::joinable!(checks -> monitor (monitor_id));
 diesel::joinable!(checks -> region (region_id));
 diesel::joinable!(monitor -> user (user_id));
 diesel::joinable!(notification_channel -> user (user_id));
+diesel::joinable!(session -> user (user_id));
 diesel::joinable!(status_page -> user (user_id));
 diesel::joinable!(subscription -> user (user_id));
 
@@ -134,6 +145,7 @@ diesel::allow_tables_to_appear_in_same_query!(
     monitor,
     notification_channel,
     region,
+    session,
     status_page,
     subscription,
     user,
