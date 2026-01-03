@@ -1,9 +1,10 @@
 use crate::{error::StoreError, store::Store};
 use chrono::NaiveDateTime;
 use diesel::{
-    PgConnection, RunQueryDsl, Selectable, SelectableHelper,
+    ExpressionMethods, PgConnection, RunQueryDsl, Selectable, SelectableHelper,
     dsl::insert_into,
     prelude::{Insertable, Queryable},
+    query_dsl::methods::FilterDsl,
 };
 use serde::Deserialize;
 use uuid::Uuid;
@@ -34,7 +35,7 @@ impl Store {
     pub fn create_user(conn: &mut PgConnection, new_user: NewUser) -> Result<User, StoreError> {
         use crate::schema::user;
 
-        let user = insert_into(user::table)
+        insert_into(user::table)
             .values(&new_user)
             .returning(User::as_returning())
             .get_result(conn)
@@ -47,9 +48,21 @@ impl Store {
                 diesel::result::Error::NotFound => StoreError::NotFound,
 
                 _ => StoreError::Internal,
-            })?;
+            })
+    }
 
-        Ok(user)
+    pub fn get_user_by_username(
+        conn: &mut PgConnection,
+        user_name: &str,
+    ) -> Result<User, StoreError> {
+        use crate::schema::user::dsl::*;
+
+        user.filter(username.eq(user_name))
+            .first::<User>(conn)
+            .map_err(|err| match err {
+                diesel::result::Error::NotFound => StoreError::NotFound,
+                _ => StoreError::Internal,
+            })
     }
 }
 
