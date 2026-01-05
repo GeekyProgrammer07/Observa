@@ -3,7 +3,7 @@ use diesel::{
     BoolExpressionMethods, ExpressionMethods, PgConnection, RunQueryDsl, Selectable,
     SelectableHelper, delete, insert_into,
     prelude::{Insertable, Queryable},
-    query_dsl::methods::FilterDsl,
+    query_dsl::methods::{FilterDsl, SelectDsl},
     update,
 };
 use uuid::Uuid;
@@ -59,12 +59,13 @@ impl Store {
     pub fn list_monitors_by_user(
         conn: &mut PgConnection,
         uid: Uuid,
-    ) -> Result<Monitor, StoreError> {
+    ) -> Result<Vec<Monitor>, StoreError> {
         use crate::schema::monitor::dsl::*;
 
         monitor
             .filter(user_id.eq(uid))
-            .first::<Monitor>(conn)
+            .select(Monitor::as_select())
+            .load(conn)
             .map_err(|err| match err {
                 diesel::result::Error::NotFound => StoreError::NotFound,
                 _ => StoreError::Internal,

@@ -1,3 +1,4 @@
+use chrono::NaiveDateTime;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
@@ -41,4 +42,20 @@ pub struct SigninResponse {
     pub access_token: String,
     pub token_type: String,
     pub expires_in: usize,
+}
+
+#[derive(Serialize)]
+pub struct GetMonitorResponse {
+    pub id: Uuid,
+    pub url: String,
+    pub name: Option<String>,
+    pub interval: i32,
+    pub timeout_ms: i32,
+    pub is_paused: bool,
+    pub created_at: NaiveDateTime,
+}
+
+#[derive(Serialize)]
+pub struct MonitorActionResponse {
+    pub message: String,
 }

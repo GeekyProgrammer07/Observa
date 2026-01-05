@@ -1,4 +1,3 @@
-#[warn(dead_code)]
 #[derive(Debug)]
 pub enum AppError {
     Env(dotenvy::Error),
