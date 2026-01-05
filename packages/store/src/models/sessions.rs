@@ -1,3 +1,4 @@
+use crate::error::StoreError;
 use argon2::{
     Argon2, PasswordHash, PasswordHasher, PasswordVerifier,
     password_hash::{
@@ -15,8 +16,6 @@ use diesel::{
 use serde::Deserialize;
 use uuid::Uuid;
 
-use crate::error::StoreError;
-
 #[derive(Queryable, Selectable)]
 #[diesel(table_name = crate::schema::session)]
 #[diesel(check_for_backend(diesel::pg::Pg))]
@@ -29,7 +28,7 @@ pub struct Session {
 }
 
 #[derive(Insertable, Deserialize)]
-#[diesel(table_name=crate::schema::session)]
+#[diesel(table_name = crate::schema::session)]
 pub struct NewSession {
     pub user_id: Uuid,
     pub expires_at: NaiveDateTime,
@@ -44,12 +43,12 @@ impl Session {
             .execute(conn)
             .map_err(|_| StoreError::Internal)?;
 
-        let token = Session::generate_secure_token();
-        let hash = Session::hash_refresh_token(&token)?;
-        let exp = Session::new_expiry();
+        let token = Self::generate_secure_token();
+        let hash = Self::hash_refresh_token(&token)?;
+        let exp = Self::new_expiry();
 
         insert_into(session::table)
-            .values(NewSession {
+            .values(&NewSession {
                 user_id: uid,
                 expires_at: exp,
                 refresh_token: hash,
@@ -66,24 +65,12 @@ impl Session {
         Ok(token)
     }
 
-    fn hash_refresh_token(token: &str) -> Result<String, StoreError> {
-        let salt = SaltString::generate(&mut OsRng);
-        let argon2 = Argon2::default();
-        let token_hash = argon2
-            .hash_password(token.as_bytes(), &salt)
-            .map_err(|_| StoreError::Internal)?
-            .to_string();
-
-        Ok(token_hash)
-    }
-
     pub fn verify_refresh_token(
         conn: &mut PgConnection,
         uid: Uuid,
         token: &str,
     ) -> Result<(), StoreError> {
         use crate::schema::session::dsl::*;
-
         let sess: Session =
             session
                 .filter(user_id.eq(uid))
@@ -93,13 +80,13 @@ impl Session {
                     _ => StoreError::Internal,
                 })?;
 
-        let parsed = PasswordHash::new(&sess.refresh_token).map_err(|_| StoreError::NotFound)?;
-
+        let parsed =
+            PasswordHash::new(&sess.refresh_token).map_err(|_| StoreError::Unauthorized)?;
         Argon2::default()
             .verify_password(token.as_bytes(), &parsed)
             .map_err(|_| StoreError::Unauthorized)?;
 
-        if sess.expires_at < chrono::Utc::now().naive_utc() {
+        if sess.expires_at < Utc::now().naive_utc() {
             return Err(StoreError::Unauthorized);
         }
 
@@ -111,16 +98,16 @@ impl Session {
         uid: Uuid,
         token: &str,
     ) -> Result<String, StoreError> {
+        Self::verify_refresh_token(conn, uid, token)?; // Self:: for consistency
+
+        let new_refresh = Self::generate_secure_token();
+        let new_hash = Self::hash_refresh_token(&new_refresh)?;
+
         use crate::schema::session::dsl::*;
-
-        Session::verify_refresh_token(conn, uid, token)?;
-        let new_refresh = Session::generate_secure_token();
-        let new_hash = Session::hash_refresh_token(&new_refresh)?;
-
         update(session.filter(user_id.eq(uid)))
             .set((
                 refresh_token.eq(new_hash),
-                expires_at.eq(Session::new_expiry()),
+                expires_at.eq(Self::new_expiry()),
             ))
             .execute(conn)
             .map_err(|_| StoreError::Internal)?;
@@ -128,10 +115,20 @@ impl Session {
         Ok(new_refresh)
     }
 
+    fn hash_refresh_token(token: &str) -> Result<String, StoreError> {
+        let salt = SaltString::generate(&mut OsRng);
+        let argon2 = Argon2::default();
+        let token_hash = argon2
+            .hash_password(token.as_bytes(), &salt)
+            .map_err(|_| StoreError::Internal)?
+            .to_string();
+        Ok(token_hash)
+    }
+
     fn generate_secure_token() -> String {
         let mut bytes = [0u8; 32];
         OsRng.fill_bytes(&mut bytes);
-        hex::encode(bytes)
+        hex::encode(bytes) // Add `hex = "0.4"` to Cargo.toml if not already
     }
 
     fn new_expiry() -> NaiveDateTime {
