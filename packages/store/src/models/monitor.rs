@@ -28,7 +28,7 @@ pub struct Monitor {
 #[diesel(table_name=crate::schema::monitor)]
 pub struct NewMonitor {
     pub url: String,
-    pub name: Option<String>,
+    pub name: String,
     pub interval: Option<i32>,
     pub timeout_ms: Option<i32>,
     pub is_paused: Option<bool>,
