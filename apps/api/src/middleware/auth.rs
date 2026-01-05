@@ -25,14 +25,13 @@ pub async fn auth_middleware<E: Endpoint>(next: E, mut req: Request) -> Result<R
     let token_data = decode::<Claims>(token, &key, &Validation::new(Algorithm::HS256))
         .map_err(|_| Error::from_status(StatusCode::UNAUTHORIZED))?;
 
-    let user_id = token_data.claims.sub;
+    let uid = token_data.claims.sub;
 
-    req.extensions_mut().insert(user_id);
+    req.extensions_mut().insert(uid);
 
     let res = next
         .call(req)
-        .await
-        .map_err(|_| Error::from_status(StatusCode::INTERNAL_SERVER_ERROR))?
+        .await?
         .into_response();
 
     Ok(res)

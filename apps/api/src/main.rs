@@ -11,6 +11,7 @@ mod handlers;
 mod models;
 mod routes;
 mod auth;
+mod middleware;
 
 #[tokio::main]
 async fn main() -> Result<(), std::io::Error> {

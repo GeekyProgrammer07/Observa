@@ -2,12 +2,17 @@ use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 #[derive(Deserialize)]
-pub struct CreateWebsiteRequest {
+pub struct CreateMonitor {
     pub url: String,
+    pub name: String,
+    pub interval: Option<i32>,
+    pub timeout_ms: Option<i32>,
+    pub is_paused: Option<bool>,
 }
 
 #[derive(Serialize)]
-pub struct CreateWebsiteResponse {
+pub struct CreateMonitorResponse {
+    pub monitor_id: Uuid,
     pub message: String,
 }
 

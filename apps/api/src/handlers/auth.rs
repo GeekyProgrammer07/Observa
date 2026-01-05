@@ -27,7 +27,7 @@ use crate::{
 };
 
 #[handler]
-pub fn signup(
+pub async fn signup(
     Json(req): Json<SignupRequest>,
     Data(store): Data<&Arc<Store>>,
 ) -> Result<(StatusCode, Json<SignupResponse>), StatusCode> {
@@ -67,7 +67,7 @@ pub fn signup(
 }
 
 #[handler]
-pub fn signin(
+pub async fn signin(
     Json(req): Json<SigninRequest>,
     Data(config): Data<&Arc<Config>>,
     Data(store): Data<&Arc<Store>>,
@@ -92,7 +92,7 @@ pub fn signin(
     let now = Utc::now().timestamp() as usize;
     let claim = Claims {
         iss: "Observa".to_string(),
-        sub: user.id.to_string(),
+        sub: user.id,
         iat: now,
         exp: (now + 60 * 60) as usize,
     };
