@@ -57,13 +57,7 @@ pub async fn signup(
         _ => StatusCode::INTERNAL_SERVER_ERROR,
     })?;
 
-    Ok((
-        StatusCode::OK,
-        Json(SignupResponse {
-            id: user.id,
-            message: "Signup Successful".to_string(),
-        }),
-    ))
+    Ok((StatusCode::OK, Json(SignupResponse { id: user.id })))
 }
 
 #[handler]

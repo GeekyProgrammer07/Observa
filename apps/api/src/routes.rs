@@ -4,6 +4,9 @@ use crate::{
     handlers::{
         auth::{signin, signup},
         monitor::{create_monitor, delete_monitor, get_monitor, pause_monitor, resume_monitor},
+        notification::{
+            create_notification_channel, delete_channel, get_notification_channel, verify_channel,
+        },
     },
     middleware::auth::auth_middleware,
 };
@@ -29,6 +32,20 @@ pub fn api_v1_routes() -> Route {
         .at(
             "/monitors/:monitor_id",
             delete(delete_monitor).around(auth_middleware),
+        )
+        .at(
+            "/notification-channels",
+            get(get_notification_channel)
+                .post(create_notification_channel)
+                .around(auth_middleware),
+        )
+        .at(
+            "/notification-channels/:channel_id/verify",
+            post(verify_channel).around(auth_middleware),
+        )
+        .at(
+            "/notification-channels/:channel_id",
+            delete(delete_channel).around(auth_middleware),
         )
 }
 

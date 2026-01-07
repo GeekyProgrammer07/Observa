@@ -48,7 +48,6 @@ pub fn create_monitor(
         StatusCode::OK,
         Json(CreateMonitorResponse {
             monitor_id: monitor.id,
-            message: "Monitor Created Successfully".to_string(),
         }),
     ))
 }

@@ -1,5 +1,6 @@
 use chrono::NaiveDateTime;
 use serde::{Deserialize, Serialize};
+use store::models::notification::ChannelType;
 use uuid::Uuid;
 
 #[derive(Deserialize)]
@@ -14,7 +15,6 @@ pub struct CreateMonitor {
 #[derive(Serialize)]
 pub struct CreateMonitorResponse {
     pub monitor_id: Uuid,
-    pub message: String,
 }
 
 #[derive(Deserialize)]
@@ -28,7 +28,6 @@ pub struct SignupRequest {
 #[derive(Serialize)]
 pub struct SignupResponse {
     pub id: Uuid,
-    pub message: String,
 }
 
 #[derive(Deserialize)]
@@ -57,5 +56,30 @@ pub struct GetMonitorResponse {
 
 #[derive(Serialize)]
 pub struct MonitorActionResponse {
+    pub message: String,
+}
+
+#[derive(Deserialize)]
+pub struct CreateNotificationChannelRequest {
+    pub channel_type: ChannelType,
+    pub value: String,
+}
+
+#[derive(Serialize)]
+pub struct CreateNotificationChannelResponse {
+    pub channel_id: Uuid,
+}
+
+#[derive(Serialize)]
+pub struct GetNotificationChannelResponse {
+    pub id: Uuid,
+    pub channel_type: ChannelType,
+    pub value: String,
+    pub verified: bool,
+    pub created_at: NaiveDateTime,
+}
+
+#[derive(Serialize)]
+pub struct VerifyNotificationChannelResponse {
     pub message: String,
 }
