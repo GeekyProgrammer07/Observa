@@ -3,5 +3,5 @@ pub enum StoreError {
     Conflict,
     NotFound,
     Internal,
-    Unauthorized
+    Unauthorized,
 }
