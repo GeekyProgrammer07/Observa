@@ -1,0 +1,2 @@
+ALTER TABLE notification_channel
+DROP CONSTRAINT user_notification_value_unique;
