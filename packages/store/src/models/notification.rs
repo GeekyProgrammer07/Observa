@@ -87,10 +87,7 @@ impl Store {
                     _,
                 ) => StoreError::Conflict,
                 diesel::result::Error::NotFound => StoreError::NotFound,
-                _ => {
-                    println!("{err}");
-                    StoreError::Internal
-                }
+                _ => StoreError::Internal,
             })
     }
 

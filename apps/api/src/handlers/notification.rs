@@ -28,7 +28,7 @@ pub fn create_notification_channel(
     let uid = req
         .extensions()
         .get::<Uuid>()
-        .ok_or_else(|| StatusCode::INTERNAL_SERVER_ERROR)?;
+        .ok_or(StatusCode::INTERNAL_SERVER_ERROR)?;
 
     let new_channel = NewChannel {
         user_id: *uid,
@@ -40,10 +40,7 @@ pub fn create_notification_channel(
         Store::add_channel(&mut conn, new_channel).map_err(|err| match err {
             StoreError::Conflict => StatusCode::CONFLICT,
             StoreError::NotFound => StatusCode::NOT_FOUND,
-            _ => {
-                println!("{:?}", err);
-                StatusCode::INTERNAL_SERVER_ERROR
-            }
+            _ => StatusCode::INTERNAL_SERVER_ERROR,
         })?;
 
     Ok((
@@ -67,7 +64,7 @@ pub fn get_notification_channel(
     let uid = req
         .extensions()
         .get::<Uuid>()
-        .ok_or_else(|| StatusCode::INTERNAL_SERVER_ERROR)?;
+        .ok_or(StatusCode::INTERNAL_SERVER_ERROR)?;
 
     let notification_channels =
         Store::list_channels_by_user(&mut conn, *uid).map_err(|err| match err {
@@ -104,7 +101,7 @@ pub fn verify_channel(
     let uid = req
         .extensions()
         .get::<Uuid>()
-        .ok_or_else(|| StatusCode::INTERNAL_SERVER_ERROR)?;
+        .ok_or(StatusCode::INTERNAL_SERVER_ERROR)?;
 
     Store::verify_channel(&mut conn, *uid, channel_id).map_err(|err| match err {
         StoreError::NotFound => StatusCode::NOT_FOUND,
@@ -133,7 +130,7 @@ pub fn delete_channel(
     let uid = req
         .extensions()
         .get::<Uuid>()
-        .ok_or_else(|| StatusCode::INTERNAL_SERVER_ERROR)?;
+        .ok_or(StatusCode::INTERNAL_SERVER_ERROR)?;
 
     Store::delete_channel(&mut conn, *uid, channel_id).map_err(|err| match err {
         StoreError::NotFound => StatusCode::NOT_FOUND,

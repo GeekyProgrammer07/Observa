@@ -27,7 +27,7 @@ pub fn create_monitor(
     let uid = req
         .extensions()
         .get::<Uuid>()
-        .ok_or_else(|| StatusCode::INTERNAL_SERVER_ERROR)?;
+        .ok_or(StatusCode::INTERNAL_SERVER_ERROR)?;
 
     let new_monitor = NewMonitor {
         url: body.url,
@@ -65,7 +65,7 @@ pub fn get_monitor(
     let uid = req
         .extensions()
         .get::<Uuid>()
-        .ok_or_else(|| StatusCode::INTERNAL_SERVER_ERROR)?;
+        .ok_or(StatusCode::INTERNAL_SERVER_ERROR)?;
 
     let monitors = Store::list_monitors_by_user(&mut conn, *uid).map_err(|err| match err {
         StoreError::NotFound => StatusCode::NOT_FOUND,
@@ -102,7 +102,7 @@ pub fn pause_monitor(
     let uid = req
         .extensions()
         .get::<Uuid>()
-        .ok_or_else(|| StatusCode::INTERNAL_SERVER_ERROR)?;
+        .ok_or(StatusCode::INTERNAL_SERVER_ERROR)?;
 
     Store::pause_monitor(&mut conn, monitor_id, *uid).map_err(|err| match err {
         StoreError::NotFound => StatusCode::NOT_FOUND,
@@ -131,7 +131,7 @@ pub fn resume_monitor(
     let uid = req
         .extensions()
         .get::<Uuid>()
-        .ok_or_else(|| StatusCode::INTERNAL_SERVER_ERROR)?;
+        .ok_or(StatusCode::INTERNAL_SERVER_ERROR)?;
 
     Store::resume_monitor(&mut conn, monitor_id, *uid).map_err(|err| match err {
         StoreError::NotFound => StatusCode::NOT_FOUND,
@@ -160,7 +160,7 @@ pub fn delete_monitor(
     let uid = req
         .extensions()
         .get::<Uuid>()
-        .ok_or_else(|| StatusCode::INTERNAL_SERVER_ERROR)?;
+        .ok_or(StatusCode::INTERNAL_SERVER_ERROR)?;
 
     Store::delete_monitor(&mut conn, monitor_id, *uid).map_err(|err| match err {
         StoreError::NotFound => StatusCode::NOT_FOUND,

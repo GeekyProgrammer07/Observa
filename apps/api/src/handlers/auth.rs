@@ -88,7 +88,7 @@ pub async fn signin(
         iss: "Observa".to_string(),
         sub: user.id,
         iat: now,
-        exp: (now + 60 * 60) as usize,
+        exp: (now + 60 * 60),
     };
     let header = Header::default();
     let key = EncodingKey::from_secret(config.jwt_secret.as_bytes());

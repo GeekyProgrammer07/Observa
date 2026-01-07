@@ -16,7 +16,12 @@ mod routes;
 #[tokio::main(flavor = "multi_thread")]
 async fn main() -> Result<(), std::io::Error> {
     let store = Arc::new(Store::new().expect("Failed to initialize Store"));
-    let config = Arc::new(config::Config::from_env().expect("Invalid Config"));
+    let config = Arc::new(config::Config::from_env().unwrap_or_else(|err| match err {
+        error::AppError::Env(e) => {
+            eprintln!("Environment configuration error: {e}");
+            std::process::exit(1);
+        }
+    }));
 
     let app = routes::routes()
         .at("/", get(health_check))
