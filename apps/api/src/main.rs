@@ -1,7 +1,6 @@
 use std::sync::Arc;
 
 use poem::{get, listener::TcpListener, EndpointExt, Result, Server};
-use redis::Commands;
 use store::store::Store;
 use tokio::time::{sleep, Duration};
 
@@ -41,13 +40,14 @@ async fn main() -> Result<(), std::io::Error> {
                     continue;
                 }
             };
+
+            let mut pipe = redis::pipe();
             for monitor in monitors {
-                if let Ok(res) = r.xadd("observa:india", "*", &[("url", monitor.url.to_string())]) {
-                    let _: String = res;
-                } else {
-                    println!("Error Adding");
-                }
+                pipe.xadd("observa:india", "*", &[("url", monitor.url.as_str())]);
             }
+
+            pipe.query::<()>(&mut r).expect("Redis pipeline failed");
+
             sleep(Duration::from_mins(1)).await;
         }
     });
