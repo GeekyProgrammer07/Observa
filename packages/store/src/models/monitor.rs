@@ -24,6 +24,13 @@ pub struct Monitor {
     pub created_at: NaiveDateTime,
 }
 
+#[derive(Queryable, Selectable)]
+#[diesel(table_name=crate::schema::monitor)]
+#[diesel(check_for_backend(diesel::pg::Pg))]
+pub struct SchedulerMonitor {
+    pub url: String,
+}
+
 #[derive(Insertable)]
 #[diesel(table_name=crate::schema::monitor)]
 pub struct NewMonitor {
@@ -118,5 +125,17 @@ impl Store {
         }
 
         Ok(())
+    }
+
+    pub fn get_monitors(conn: &mut PgConnection) -> Result<Vec<SchedulerMonitor>, StoreError> {
+        use crate::schema::monitor::dsl::*;
+
+        monitor
+            .select(SchedulerMonitor::as_select())
+            .load(conn)
+            .map_err(|err| match err {
+                diesel::result::Error::NotFound => StoreError::NotFound,
+                _ => StoreError::Internal,
+            })
     }
 }
