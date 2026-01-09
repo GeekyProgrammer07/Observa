@@ -1,7 +1,9 @@
 use std::sync::Arc;
 
 use poem::{get, listener::TcpListener, EndpointExt, Result, Server};
+use redis::Commands;
 use store::store::Store;
+use tokio::time::{sleep, Duration};
 
 use crate::handlers::health::health_check;
 
@@ -22,6 +24,33 @@ async fn main() -> Result<(), std::io::Error> {
             std::process::exit(1);
         }
     }));
+
+    let mut r = redis::Client::open(config.redis_url.clone())
+        .expect("Connection Success")
+        .get_connection()
+        .expect("Connect");
+
+    let mut conn = store.pool.get().expect("Database Connected");
+
+    tokio::spawn(async move {
+        loop {
+            let monitors = match Store::get_monitors(&mut conn) {
+                Ok(m) => m,
+                Err(_) => {
+                    eprintln!("Failed to fetch monitors");
+                    continue;
+                }
+            };
+            for monitor in monitors {
+                if let Ok(res) = r.xadd("observa:india", "*", &[("url", monitor.url.to_string())]) {
+                    let _: String = res;
+                } else {
+                    println!("Error Adding");
+                }
+            }
+            sleep(Duration::from_mins(1)).await;
+        }
+    });
 
     let app = routes::routes()
         .at("/", get(health_check))
