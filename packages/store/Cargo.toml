@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-argon2 = "0.5.3"
+argon2 = { version = "0.5.3", features = ["std"] }
 chrono = { version = "0.4.42", features = ["serde"] }
 diesel = { version = "2.2.0", features = [
     "postgres",
@@ -17,7 +17,7 @@ diesel = { version = "2.2.0", features = [
 # pq-sys = { version = "0.6", features = ["bundled"] }
 # openssl-sys = { version = "0.9.100", features = ["vendored"] } 
 dotenvy = "0.15"
-serde = "1.0.228"
-uuid = "1"
+serde = { version = "1.0.228", features = ["derive"] }
+uuid    = { version = "1", features = ["serde"] }
 hex = "0.4"
 diesel-derive-enum = { version = "0.4", features = ["postgres"] }
