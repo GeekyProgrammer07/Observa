@@ -24,14 +24,16 @@ async fn main() -> Result<(), std::io::Error> {
         }
     }));
 
-    let mut r = redis::Client::open(config.redis_url.clone())
+    let mut r = redis::Client::open(Arc::clone(&config).redis_url.clone())
         .expect("Connection Success")
         .get_connection()
         .expect("Connect");
 
     let mut conn = store.pool.get().expect("Database Connected");
 
+    let config_for_task = Arc::clone(&config);
     tokio::spawn(async move {
+        let stream_key = &config_for_task.stream_key;
         loop {
             let monitors = match Store::get_monitors(&mut conn) {
                 Ok(m) => m,
@@ -41,9 +43,23 @@ async fn main() -> Result<(), std::io::Error> {
                 }
             };
 
+            if monitors.is_empty() {
+                sleep(Duration::from_secs(30)).await;
+                continue;
+            }
+
             let mut pipe = redis::pipe();
             for monitor in monitors {
-                pipe.xadd("observa:india", "*", &[("url", monitor.url.as_str())]);
+                pipe.cmd("XADD")
+                    .arg(stream_key)
+                    .arg("MAXLEN")
+                    .arg("~")
+                    .arg(10000)
+                    .arg("*")
+                    .arg("url")
+                    .arg(&monitor.url)
+                    .arg("monitor_id")
+                    .arg(monitor.id.to_string());
             }
 
             pipe.query::<()>(&mut r).expect("Redis pipeline failed");
@@ -57,7 +73,7 @@ async fn main() -> Result<(), std::io::Error> {
         .data(store)
         .data(config);
     Server::new(TcpListener::bind("0.0.0.0:3000"))
-        .name("hello-world")
+        .name("Observa")
         .run(app)
         .await
 }
