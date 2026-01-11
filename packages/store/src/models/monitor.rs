@@ -24,10 +24,11 @@ pub struct Monitor {
     pub created_at: NaiveDateTime,
 }
 
-#[derive(Queryable, Selectable)]
+#[derive(Debug, Queryable, Selectable)]
 #[diesel(table_name=crate::schema::monitor)]
 #[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct SchedulerMonitor {
+    pub id: Uuid,
     pub url: String,
 }
 
@@ -131,6 +132,7 @@ impl Store {
         use crate::schema::monitor::dsl::*;
 
         monitor
+            .filter(is_paused.eq(false))
             .select(SchedulerMonitor::as_select())
             .load(conn)
             .map_err(|err| match err {
