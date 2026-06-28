@@ -1,104 +1,122 @@
-# New Nx Repository
+# Observa
 
-<a alt="Nx logo" href="https://nx.dev" target="_blank" rel="noreferrer"><img src="https://raw.githubusercontent.com/nrwl/nx/master/images/nx-logo.png" width="45"></a>
+Observa is a self-hosted uptime and API monitoring service. It periodically checks the URLs you register, tracks their status and response times, and notifies you when something goes down — built with a Rust backend designed around a simple, scalable check-and-alert pipeline.
 
-✨ Your new, shiny [Nx workspace](https://nx.dev) is ready ✨.
+> ⚠️ **Status:** Backend (API + worker + store) is functional. The frontend (`apps/web`) is scaffolded but not yet implemented — this project currently runs and is tested via the API directly (e.g. with curl/Postman).
 
-[Learn more about this workspace setup and its capabilities](https://nx.dev/nx-api/js?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects) or run `npx nx graph` to visually explore what was created. Now, let's get you up to speed!
+## How it works
 
-## Generate a library
-
-```sh
-npx nx g @nx/js:lib packages/pkg1 --publishable --importPath=@my-org/pkg1
-```
-
-## Run tasks
-
-To build the library use:
-
-```sh
-npx nx build pkg1
-```
-
-To run any task with Nx use:
-
-```sh
-npx nx <target> <project-name>
-```
-
-These targets are either [inferred automatically](https://nx.dev/concepts/inferred-tasks?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects) or defined in the `project.json` or `package.json` files.
-
-[More about running tasks in the docs &raquo;](https://nx.dev/features/run-tasks?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-
-## Versioning and releasing
-
-To version and release the library use
+Observa is an Nx-managed monorepo with three Rust crates and a shared store:
 
 ```
-npx nx release
+apps/
+  api/      -> HTTP API server (Poem framework) — auth, monitors, notification channels
+  worker/   -> Background worker(s) that perform the actual HTTP health checks
+  web/      -> Frontend (not yet implemented)
+packages/
+  store/    -> Shared data layer (Diesel + PostgreSQL) used by both api and worker
 ```
 
-Pass `--dry-run` to see what would happen without actually releasing the library.
+The flow looks like this:
 
-[Learn more about Nx release &raquo;](https://nx.dev/features/manage-releases?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
+1. **API** lets a user sign up, sign in, and register monitors (URLs to watch) and notification channels (email, SMS, voice call, webhook).
+2. A background task inside the API pushes due monitors onto a **Redis Stream** on a fixed schedule.
+3. One or more **worker** processes consume that stream (using a Redis consumer group, so checks can be scaled horizontally across regions), perform the actual HTTP request, measure response time, and write the result back to Postgres via the shared `store` crate.
+4. Check results are stored per monitor/region, so uptime history and latency can be queried back out through the API.
 
-## Keep TypeScript project references up to date
+## Tech stack
 
-Nx automatically updates TypeScript [project references](https://www.typescriptlang.org/docs/handbook/project-references.html) in `tsconfig.json` files to ensure they remain accurate based on your project dependencies (`import` or `require` statements). This sync is automatically done when running tasks such as `build` or `typecheck`, which require updated references to function correctly.
+- **Language:** Rust (edition 2021)
+- **API framework:** [Poem](https://github.com/poem-web/poem)
+- **Database:** PostgreSQL via [Diesel](https://diesel.rs/)
+- **Queue:** Redis Streams (consumer groups) for distributing checks to workers
+- **Auth:** JWT (`jsonwebtoken`) + password hashing with `argon2`
+- **Async runtime:** Tokio
+- **Monorepo tooling:** [Nx](https://nx.dev/) + pnpm workspaces (for the eventual frontend)
 
-To manually trigger the process to sync the project graph dependencies information to the TypeScript project references, run the following command:
+## API overview
 
-```sh
-npx nx sync
+All routes are namespaced under `/api/v1`.
+
+| Method | Route | Description |
+|---|---|---|
+| POST | `/signup` | Create a new user |
+| POST | `/signin` | Authenticate and receive an access token |
+| GET | `/monitors` | List monitors |
+| POST | `/monitors` | Create a monitor |
+| PATCH | `/monitors/:monitor_id/pause` | Pause a monitor |
+| PATCH | `/monitors/:monitor_id/resume` | Resume a monitor |
+| DELETE | `/monitors/:monitor_id` | Delete a monitor |
+| GET | `/notification-channels` | List notification channels |
+| POST | `/notification-channels` | Create a notification channel |
+| POST | `/notification-channels/:channel_id/verify` | Verify a channel |
+| DELETE | `/notification-channels/:channel_id` | Delete a channel |
+| GET | `/` | Health check |
+
+## Getting started
+
+### Prerequisites
+
+- Rust (version pinned in `rust-toolchain.toml`)
+- Docker (for Postgres + Redis)
+
+### 1. Start dependencies
+
+```bash
+docker compose up -d
 ```
 
-You can enforce that the TypeScript project references are always in the correct state when running in CI by adding a step to your CI job configuration that runs the following command:
+This spins up:
+- **Postgres** on `localhost:5432` (db: `observa-main`)
+- **Redis** on `localhost:6379`
 
-```sh
-npx nx sync:check
+### 2. Configure environment
+
+Create a `.env` file for the API (`apps/api`) with at least:
+
+```env
+JWT_SECRET=your-secret-here
+REDIS_URL=redis://127.0.0.1:6379
+STREAM_KEY=monitor-checks
+DATABASE_URL=postgres://postgres:mysecret@localhost:5432/observa-main
 ```
 
-[Learn more about nx sync](https://nx.dev/reference/nx-commands#sync)
+And one for the worker (`apps/worker`):
 
-## Nx Cloud
-
-Nx Cloud ensures a [fast and scalable CI](https://nx.dev/ci/intro/why-nx-cloud?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects) pipeline. It includes features such as:
-
-- [Remote caching](https://nx.dev/ci/features/remote-cache?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-- [Task distribution across multiple machines](https://nx.dev/ci/features/distribute-task-execution?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-- [Automated e2e test splitting](https://nx.dev/ci/features/split-e2e-tasks?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-- [Task flakiness detection and rerunning](https://nx.dev/ci/features/flaky-tasks?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-
-### Set up CI (non-Github Actions CI)
-
-**Note:** This is only required if your CI provider is not GitHub Actions.
-
-Use the following command to configure a CI workflow for your workspace:
-
-```sh
-npx nx g ci-workflow
+```env
+REDIS_URL=redis://127.0.0.1:6379
+STREAM_KEY=monitor-checks
+CONSUMER_GROUP=monitor-workers
+REGION_ID=<a-valid-uuid>
+DATABASE_URL=postgres://postgres:mysecret@localhost:5432/observa-main
 ```
 
-[Learn more about Nx on CI](https://nx.dev/ci/intro/ci-with-nx#ready-get-started-with-your-provider?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
+### 3. Run database migrations
 
-## Install Nx Console
+```bash
+cd packages/store
+diesel migration run
+```
 
-Nx Console is an editor extension that enriches your developer experience. It lets you run tasks, generate code, and improves code autocompletion in your IDE. It is available for VSCode and IntelliJ.
+### 4. Run the API
 
-[Install Nx Console &raquo;](https://nx.dev/getting-started/editor-setup?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
+```bash
+cargo run -p api
+```
 
-## Useful links
+The API will start on `http://0.0.0.0:3000`.
 
-Learn more:
+### 5. Run the worker
 
-- [Learn more about this workspace setup](https://nx.dev/nx-api/js?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-- [Learn about Nx on CI](https://nx.dev/ci/intro/ci-with-nx?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-- [Releasing Packages with Nx release](https://nx.dev/features/manage-releases?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-- [What are Nx plugins?](https://nx.dev/concepts/nx-plugins?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
+```bash
+cargo run -p worker
+```
 
-And join the Nx community:
+You can run multiple worker instances (even with different `REGION_ID`s) to simulate distributed, multi-region checking.
 
-- [Discord](https://go.nx.dev/community)
-- [Follow us on X](https://twitter.com/nxdevtools) or [LinkedIn](https://www.linkedin.com/company/nrwl)
-- [Our Youtube channel](https://www.youtube.com/@nxdevtools)
-- [Our blog](https://nx.dev/blog?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
+## Roadmap
+
+- [ ] Frontend dashboard (`apps/web`) for managing monitors and viewing uptime history
+- [ ] Actual outbound notification delivery (email/SMS/voice/webhook firing on incidents)
+- [ ] Incident/status history views
+- [ ] Multi-region check aggregation and reporting
