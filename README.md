@@ -2,7 +2,7 @@
 
 Observa is a self-hosted uptime and API monitoring service. It periodically checks the URLs you register, tracks their status and response times, and notifies you when something goes down — built with a Rust backend designed around a simple, scalable check-and-alert pipeline.
 
-> ⚠️ **Status:** Backend (API + worker + store) is functional. The frontend (`apps/web`) is scaffolded but not yet implemented — this project currently runs and is tested via the API directly (e.g. with curl/Postman).
+> ⚠️ **Status:** Backend (API + worker + store) is functional. Frontend (`apps/web`) is actively being built.
 
 ## How it works
 
@@ -12,10 +12,12 @@ Observa is an Nx-managed monorepo with three Rust crates and a shared store:
 apps/
   api/      -> HTTP API server (Poem framework) — auth, monitors, notification channels
   worker/   -> Background worker(s) that perform the actual HTTP health checks
-  web/      -> Frontend (not yet implemented)
+  web/      -> React frontend (in progress)
 packages/
   store/    -> Shared data layer (Diesel + PostgreSQL) used by both api and worker
 ```
+
+Each app and package has its own README with setup details.
 
 The flow looks like this:
 
@@ -113,6 +115,14 @@ cargo run -p worker
 ```
 
 You can run multiple worker instances (even with different `REGION_ID`s) to simulate distributed, multi-region checking.
+
+### Log verbosity
+
+Both `api` and `worker` default to `info` level. Set `RUST_LOG` to get more detail:
+
+```bash
+RUST_LOG=debug cargo run -p worker
+```
 
 ## Roadmap
 
