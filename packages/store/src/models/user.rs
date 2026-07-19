@@ -47,7 +47,10 @@ impl Store {
 
                 diesel::result::Error::NotFound => StoreError::NotFound,
 
-                _ => StoreError::Internal,
+                _ => {
+                    tracing::error!(error = ?err, "unexpected database error");
+                    StoreError::Internal
+                }
             })
     }
 
@@ -61,7 +64,10 @@ impl Store {
             .first::<User>(conn)
             .map_err(|err| match err {
                 diesel::result::Error::NotFound => StoreError::NotFound,
-                _ => StoreError::Internal,
+                _ => {
+                    tracing::error!(error = ?err, "unexpected database error");
+                    StoreError::Internal
+                }
             })
     }
 }

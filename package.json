@@ -2,7 +2,16 @@
   "name": "@observa/source",
   "version": "0.0.0",
   "license": "MIT",
-  "scripts": {},
+  "scripts": {
+    "test": "pnpm run test:web && pnpm run test:rust",
+    "test:web": "vitest run --config apps/web/vite.config.mts --reporter=verbose",
+    "test:web:watch": "vitest --config apps/web/vite.config.mts",
+    "test:web:coverage": "vitest run --config apps/web/vite.config.mts --reporter=verbose --coverage",
+    "test:rust": "cargo test --workspace",
+    "test:api": "cargo test -p api",
+    "test:worker": "cargo test -p worker",
+    "test:store": "cargo test -p store"
+  },
   "private": true,
   "devDependencies": {
     "@eslint/js": "^9.8.0",

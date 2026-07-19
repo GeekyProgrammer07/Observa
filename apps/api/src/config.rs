@@ -3,7 +3,7 @@ use crate::error::AppError;
 pub struct Config {
     pub jwt_secret: String,
     pub redis_url: String,
-    pub stream_key: String
+    pub stream_key: String,
 }
 
 impl Config {
@@ -15,7 +15,7 @@ impl Config {
         Ok(Self {
             jwt_secret,
             redis_url,
-            stream_key
+            stream_key,
         })
     }
 }

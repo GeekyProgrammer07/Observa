@@ -31,10 +31,10 @@ pub async fn signup(
     Json(req): Json<SignupRequest>,
     Data(store): Data<&Arc<Store>>,
 ) -> Result<(StatusCode, Json<SignupResponse>), StatusCode> {
-    let mut conn = store
-        .pool
-        .get()
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let mut conn = store.pool.get().map_err(|e| {
+        tracing::error!(error = %e, "failed to get DB connection from pool");
+        StatusCode::INTERNAL_SERVER_ERROR
+    })?;
 
     let password = req.password.as_bytes();
     let salt = SaltString::generate(&mut OsRng);
@@ -54,7 +54,10 @@ pub async fn signup(
     let user = Store::create_user(&mut conn, user_to_insert).map_err(|err| match err {
         StoreError::Conflict => StatusCode::CONFLICT,
         StoreError::NotFound => StatusCode::NOT_FOUND,
-        _ => StatusCode::INTERNAL_SERVER_ERROR,
+        _ => {
+            tracing::error!(error = ?err, "store operation failed");
+            StatusCode::INTERNAL_SERVER_ERROR
+        }
     })?;
 
     Ok((StatusCode::OK, Json(SignupResponse { id: user.id })))
@@ -66,14 +69,17 @@ pub async fn signin(
     Data(config): Data<&Arc<Config>>,
     Data(store): Data<&Arc<Store>>,
 ) -> Result<Response, StatusCode> {
-    let mut conn = store
-        .pool
-        .get()
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let mut conn = store.pool.get().map_err(|e| {
+        tracing::error!(error = %e, "failed to get DB connection from pool");
+        StatusCode::INTERNAL_SERVER_ERROR
+    })?;
 
     let user = Store::get_user_by_username(&mut conn, &req.username).map_err(|err| match err {
         StoreError::NotFound => StatusCode::UNAUTHORIZED,
-        _ => StatusCode::INTERNAL_SERVER_ERROR,
+        _ => {
+            tracing::error!(error = ?err, "store operation failed");
+            StatusCode::INTERNAL_SERVER_ERROR
+        }
     })?;
 
     let hashed_password =
@@ -99,7 +105,10 @@ pub async fn signin(
     let refresh_token =
         Session::create_refresh_token(&mut conn, user.id).map_err(|err| match err {
             StoreError::Conflict => StatusCode::CONFLICT,
-            _ => StatusCode::INTERNAL_SERVER_ERROR,
+            _ => {
+                tracing::error!(error = ?err, "store operation failed");
+                StatusCode::INTERNAL_SERVER_ERROR
+            }
         })?;
 
     let mut cookie = Cookie::new_with_str("refreshToken", refresh_token);

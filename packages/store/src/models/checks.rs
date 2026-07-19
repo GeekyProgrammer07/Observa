@@ -67,7 +67,49 @@ impl Store {
                     _,
                 ) => StoreError::Conflict,
                 diesel::result::Error::NotFound => StoreError::NotFound,
-                _ => StoreError::Internal,
+                _ => {
+                    tracing::error!(error = ?err, "unexpected database error");
+                    StoreError::Internal
+                }
             })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::MonitorStatusType;
+
+    #[test]
+    fn serializes_variants_to_their_db_names() {
+        assert_eq!(
+            serde_json::to_string(&MonitorStatusType::Up).unwrap(),
+            "\"Up\""
+        );
+        assert_eq!(
+            serde_json::to_string(&MonitorStatusType::Down).unwrap(),
+            "\"Down\""
+        );
+        assert_eq!(
+            serde_json::to_string(&MonitorStatusType::Unknown).unwrap(),
+            "\"Unknown\""
+        );
+    }
+
+    #[test]
+    fn deserializes_from_the_same_names() {
+        assert!(matches!(
+            serde_json::from_str::<MonitorStatusType>("\"Up\"").unwrap(),
+            MonitorStatusType::Up
+        ));
+        assert!(matches!(
+            serde_json::from_str::<MonitorStatusType>("\"Down\"").unwrap(),
+            MonitorStatusType::Down
+        ));
+    }
+
+    #[test]
+    fn rejects_unknown_variants() {
+        assert!(serde_json::from_str::<MonitorStatusType>("\"Degraded\"").is_err());
+        assert!(serde_json::from_str::<MonitorStatusType>("\"up\"").is_err());
     }
 }

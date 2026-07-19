@@ -20,10 +20,10 @@ pub fn create_notification_channel(
     Data(store): Data<&Arc<Store>>,
     req: &Request,
 ) -> Result<(StatusCode, Json<CreateNotificationChannelResponse>), StatusCode> {
-    let mut conn = store
-        .pool
-        .get()
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let mut conn = store.pool.get().map_err(|e| {
+        tracing::error!(error = %e, "failed to get DB connection from pool");
+        StatusCode::INTERNAL_SERVER_ERROR
+    })?;
 
     let uid = req
         .extensions()
@@ -40,7 +40,10 @@ pub fn create_notification_channel(
         Store::add_channel(&mut conn, new_channel).map_err(|err| match err {
             StoreError::Conflict => StatusCode::CONFLICT,
             StoreError::NotFound => StatusCode::NOT_FOUND,
-            _ => StatusCode::INTERNAL_SERVER_ERROR,
+            _ => {
+                tracing::error!(error = ?err, "store operation failed");
+                StatusCode::INTERNAL_SERVER_ERROR
+            }
         })?;
 
     Ok((
@@ -56,10 +59,10 @@ pub fn get_notification_channel(
     Data(store): Data<&Arc<Store>>,
     req: &Request,
 ) -> Result<(StatusCode, Json<Vec<GetNotificationChannelResponse>>), StatusCode> {
-    let mut conn = store
-        .pool
-        .get()
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let mut conn = store.pool.get().map_err(|e| {
+        tracing::error!(error = %e, "failed to get DB connection from pool");
+        StatusCode::INTERNAL_SERVER_ERROR
+    })?;
 
     let uid = req
         .extensions()
@@ -69,7 +72,10 @@ pub fn get_notification_channel(
     let notification_channels =
         Store::list_channels_by_user(&mut conn, *uid).map_err(|err| match err {
             StoreError::NotFound => StatusCode::NOT_FOUND,
-            _ => StatusCode::INTERNAL_SERVER_ERROR,
+            _ => {
+                tracing::error!(error = ?err, "store operation failed");
+                StatusCode::INTERNAL_SERVER_ERROR
+            }
         })?;
 
     let response: Vec<GetNotificationChannelResponse> = notification_channels
@@ -93,10 +99,10 @@ pub fn verify_channel(
     req: &Request,
     Path(channel_id): Path<Uuid>,
 ) -> Result<(StatusCode, Json<VerifyNotificationChannelResponse>), StatusCode> {
-    let mut conn = store
-        .pool
-        .get()
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let mut conn = store.pool.get().map_err(|e| {
+        tracing::error!(error = %e, "failed to get DB connection from pool");
+        StatusCode::INTERNAL_SERVER_ERROR
+    })?;
 
     let uid = req
         .extensions()
@@ -105,7 +111,10 @@ pub fn verify_channel(
 
     Store::verify_channel(&mut conn, *uid, channel_id).map_err(|err| match err {
         StoreError::NotFound => StatusCode::NOT_FOUND,
-        _ => StatusCode::INTERNAL_SERVER_ERROR,
+        _ => {
+            tracing::error!(error = ?err, "store operation failed");
+            StatusCode::INTERNAL_SERVER_ERROR
+        }
     })?;
 
     Ok((
@@ -122,10 +131,10 @@ pub fn delete_channel(
     req: &Request,
     Path(channel_id): Path<Uuid>,
 ) -> Result<StatusCode, StatusCode> {
-    let mut conn = store
-        .pool
-        .get()
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let mut conn = store.pool.get().map_err(|e| {
+        tracing::error!(error = %e, "failed to get DB connection from pool");
+        StatusCode::INTERNAL_SERVER_ERROR
+    })?;
 
     let uid = req
         .extensions()
@@ -134,7 +143,10 @@ pub fn delete_channel(
 
     Store::delete_channel(&mut conn, *uid, channel_id).map_err(|err| match err {
         StoreError::NotFound => StatusCode::NOT_FOUND,
-        _ => StatusCode::INTERNAL_SERVER_ERROR,
+        _ => {
+            tracing::error!(error = ?err, "store operation failed");
+            StatusCode::INTERNAL_SERVER_ERROR
+        }
     })?;
 
     Ok(StatusCode::OK)

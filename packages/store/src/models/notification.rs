@@ -42,7 +42,7 @@ impl FromSql<crate::schema::sql_types::ChannelType, Pg> for ChannelType {
     fn from_sql(bytes: PgValue) -> deserialize::Result<Self> {
         match bytes.as_bytes() {
             b"Email" => Ok(ChannelType::Email),
-            b"sms" => Ok(ChannelType::Sms),
+            b"Sms" => Ok(ChannelType::Sms),
             b"VoiceCall" => Ok(ChannelType::VoiceCall),
             b"Webhook" => Ok(ChannelType::Webhook),
             _ => Err("Unrecognized enum variant".into()),
@@ -87,7 +87,10 @@ impl Store {
                     _,
                 ) => StoreError::Conflict,
                 diesel::result::Error::NotFound => StoreError::NotFound,
-                _ => StoreError::Internal,
+                _ => {
+                    tracing::error!(error = ?err, "unexpected database error");
+                    StoreError::Internal
+                }
             })
     }
 
@@ -103,7 +106,10 @@ impl Store {
             .load(conn)
             .map_err(|err| match err {
                 diesel::result::Error::NotFound => StoreError::NotFound,
-                _ => StoreError::Internal,
+                _ => {
+                    tracing::error!(error = ?err, "unexpected database error");
+                    StoreError::Internal
+                }
             })
     }
 
@@ -117,7 +123,10 @@ impl Store {
         let affected = update(notification_channel.filter(id.eq(channel_id).and(user_id.eq(uid))))
             .set(verified.eq(true))
             .execute(conn)
-            .map_err(|_| StoreError::Internal)?;
+            .map_err(|err| {
+                tracing::error!(error = ?err, "unexpected database error");
+                StoreError::Internal
+            })?;
 
         if affected == 0 {
             return Err(StoreError::NotFound);
@@ -135,12 +144,59 @@ impl Store {
 
         let affected = delete(notification_channel.filter(id.eq(channel_id).and(user_id.eq(uid))))
             .execute(conn)
-            .map_err(|_| StoreError::Internal)?;
+            .map_err(|err| {
+                tracing::error!(error = ?err, "unexpected database error");
+                StoreError::Internal
+            })?;
 
         if affected == 0 {
             return Err(StoreError::NotFound);
         }
 
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::ChannelType;
+
+    #[test]
+    fn serializes_variants_to_their_db_names() {
+        assert_eq!(
+            serde_json::to_string(&ChannelType::Email).unwrap(),
+            "\"Email\""
+        );
+        assert_eq!(serde_json::to_string(&ChannelType::Sms).unwrap(), "\"Sms\"");
+        assert_eq!(
+            serde_json::to_string(&ChannelType::VoiceCall).unwrap(),
+            "\"VoiceCall\""
+        );
+        assert_eq!(
+            serde_json::to_string(&ChannelType::Webhook).unwrap(),
+            "\"Webhook\""
+        );
+    }
+
+    #[test]
+    fn deserializes_from_the_same_names() {
+        assert!(matches!(
+            serde_json::from_str::<ChannelType>("\"Email\"").unwrap(),
+            ChannelType::Email
+        ));
+        assert!(matches!(
+            serde_json::from_str::<ChannelType>("\"Sms\"").unwrap(),
+            ChannelType::Sms
+        ));
+        assert!(matches!(
+            serde_json::from_str::<ChannelType>("\"Webhook\"").unwrap(),
+            ChannelType::Webhook
+        ));
+    }
+
+    #[test]
+    fn rejects_unknown_variants() {
+        assert!(serde_json::from_str::<ChannelType>("\"Pager\"").is_err());
+        assert!(serde_json::from_str::<ChannelType>("\"sms\"").is_err());
     }
 }

@@ -1,6 +1,8 @@
 services:
   postgres:
-    image: postgres:latest
+    # Pinned to 17: the observa_data volume was initialized by Postgres 17 and
+    # `latest` (18+) refuses to start on it without a pg_upgrade.
+    image: postgres:17
     container_name: observa_db
     environment:
       POSTGRES_USER: postgres

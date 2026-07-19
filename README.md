@@ -124,6 +124,28 @@ Both `api` and `worker` default to `info` level. Set `RUST_LOG` to get more deta
 RUST_LOG=debug cargo run -p worker
 ```
 
+## Testing
+
+Run every suite (web + all Rust crates) from the repo root:
+
+```bash
+pnpm test
+```
+
+Or target a single suite:
+
+```bash
+pnpm test:web            # React app (Vitest, verbose reporter)
+pnpm test:web:watch      # Vitest in watch mode
+pnpm test:web:coverage   # Vitest with V8 coverage report
+pnpm test:rust           # api + worker + store (cargo test --workspace)
+pnpm test:api            # API only: JWT middleware, claims, request/response models
+pnpm test:worker         # worker only: up/down classification, error types
+pnpm test:store          # store only: session token hashing, enum serde
+```
+
+The suites are self-contained — they mock HTTP/fetch and never need Postgres, Redis, or a running server.
+
 ## Roadmap
 
 - [ ] Frontend dashboard (`apps/web`) for managing monitors and viewing uptime history

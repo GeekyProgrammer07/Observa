@@ -135,3 +135,66 @@ impl Session {
         (Utc::now() + Duration::days(30)).naive_utc()
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn generate_secure_token_is_64_hex_chars() {
+        let token = Session::generate_secure_token();
+        assert_eq!(token.len(), 64, "32 random bytes hex-encoded");
+        assert!(token.chars().all(|c| c.is_ascii_hexdigit()));
+    }
+
+    #[test]
+    fn generate_secure_token_is_unique_per_call() {
+        let a = Session::generate_secure_token();
+        let b = Session::generate_secure_token();
+        assert_ne!(a, b, "two tokens must never collide");
+    }
+
+    #[test]
+    fn hash_refresh_token_produces_a_verifiable_argon2_hash() {
+        let token = Session::generate_secure_token();
+        let hash = Session::hash_refresh_token(&token).expect("hashing must succeed");
+
+        assert!(hash.starts_with("$argon2"), "must be an argon2 PHC string");
+        assert_ne!(hash, token, "hash must not leak the raw token");
+
+        let parsed = PasswordHash::new(&hash).expect("hash must parse as PHC");
+        Argon2::default()
+            .verify_password(token.as_bytes(), &parsed)
+            .expect("original token must verify against its hash");
+    }
+
+    #[test]
+    fn hash_refresh_token_rejects_a_different_token() {
+        let hash = Session::hash_refresh_token("token-a").expect("hashing must succeed");
+        let parsed = PasswordHash::new(&hash).expect("hash must parse");
+
+        assert!(
+            Argon2::default()
+                .verify_password(b"token-b", &parsed)
+                .is_err(),
+            "a different token must not verify"
+        );
+    }
+
+    #[test]
+    fn hashes_are_salted_so_equal_tokens_hash_differently() {
+        let h1 = Session::hash_refresh_token("same-token").unwrap();
+        let h2 = Session::hash_refresh_token("same-token").unwrap();
+        assert_ne!(h1, h2, "per-hash salts must differ");
+    }
+
+    #[test]
+    fn new_expiry_is_about_30_days_out() {
+        let expiry = Session::new_expiry();
+        let now = Utc::now().naive_utc();
+        let delta = expiry - now;
+
+        assert!(delta > Duration::days(29), "expiry too soon: {delta}");
+        assert!(delta <= Duration::days(30), "expiry too late: {delta}");
+    }
+}

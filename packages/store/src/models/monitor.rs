@@ -60,7 +60,10 @@ impl Store {
                     _,
                 ) => StoreError::Conflict,
                 diesel::result::Error::NotFound => StoreError::NotFound,
-                _ => StoreError::Internal,
+                _ => {
+                    tracing::error!(error = ?err, "unexpected database error");
+                    StoreError::Internal
+                }
             })
     }
 
@@ -76,7 +79,10 @@ impl Store {
             .load(conn)
             .map_err(|err| match err {
                 diesel::result::Error::NotFound => StoreError::NotFound,
-                _ => StoreError::Internal,
+                _ => {
+                    tracing::error!(error = ?err, "unexpected database error");
+                    StoreError::Internal
+                }
             })
     }
 
@@ -90,7 +96,10 @@ impl Store {
         let affected = update(monitor.filter(id.eq(mid).and(user_id.eq(uid))))
             .set(is_paused.eq(true))
             .execute(conn)
-            .map_err(|_| StoreError::Internal)?;
+            .map_err(|err| {
+                tracing::error!(error = ?err, "unexpected database error");
+                StoreError::Internal
+            })?;
 
         if affected == 0 {
             return Err(StoreError::NotFound);
@@ -105,7 +114,10 @@ impl Store {
         let affected = update(monitor.filter(id.eq(mid).and(user_id.eq(uid))))
             .set(is_paused.eq(false))
             .execute(conn)
-            .map_err(|_| StoreError::Internal)?;
+            .map_err(|err| {
+                tracing::error!(error = ?err, "unexpected database error");
+                StoreError::Internal
+            })?;
 
         if affected == 0 {
             return Err(StoreError::NotFound);
@@ -119,7 +131,10 @@ impl Store {
 
         let affected = delete(monitor.filter(id.eq(mid).and(user_id.eq(uid))))
             .execute(conn)
-            .map_err(|_| StoreError::Internal)?;
+            .map_err(|err| {
+                tracing::error!(error = ?err, "unexpected database error");
+                StoreError::Internal
+            })?;
 
         if affected == 0 {
             return Err(StoreError::NotFound);
@@ -137,7 +152,10 @@ impl Store {
             .load(conn)
             .map_err(|err| match err {
                 diesel::result::Error::NotFound => StoreError::NotFound,
-                _ => StoreError::Internal,
+                _ => {
+                    tracing::error!(error = ?err, "unexpected database error");
+                    StoreError::Internal
+                }
             })
     }
 }

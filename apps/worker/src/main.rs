@@ -18,6 +18,12 @@ use crate::error::WorkerError;
 mod config;
 mod error;
 
+// 5xx and connection errors = Down. Everything else (2xx/3xx/4xx) = Up.
+// A 401/403 means the server is alive and responding — not a failure.
+fn is_monitor_up(status: reqwest::StatusCode) -> bool {
+    !status.is_server_error()
+}
+
 #[tokio::main]
 async fn main() -> Result<(), WorkerError> {
     tracing_subscriber::fmt()
@@ -54,7 +60,7 @@ async fn main() -> Result<(), WorkerError> {
         })?;
     info!("Database connection established");
 
-    let redis_url_display = config.redis_url.split('@').last().unwrap_or("(hidden)");
+    let redis_url_display = config.redis_url.split('@').next_back().unwrap_or("(hidden)");
     let mut r = redis::Client::open(config.redis_url.clone())
         .map_err(|e| {
             error!(error = %e, url = %redis_url_display, "Failed to open Redis client");
@@ -204,9 +210,7 @@ async fn main() -> Result<(), WorkerError> {
                 let elapsed = start.elapsed();
                 let http_status = response.status();
 
-                // 5xx and connection errors = Down. Everything else (2xx/3xx/4xx) = Up.
-                // A 401/403 means the server is alive and responding — not a failure.
-                let is_up = !http_status.is_server_error();
+                let is_up = is_monitor_up(http_status);
 
                 if is_up {
                     info!(
@@ -270,5 +274,49 @@ async fn main() -> Result<(), WorkerError> {
                 info!(entry_id = %id.id, monitor_id = %m_id, "Entry acknowledged");
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::is_monitor_up;
+    use reqwest::StatusCode;
+
+    #[test]
+    fn success_statuses_are_up() {
+        assert!(is_monitor_up(StatusCode::OK));
+        assert!(is_monitor_up(StatusCode::CREATED));
+        assert!(is_monitor_up(StatusCode::NO_CONTENT));
+    }
+
+    #[test]
+    fn redirects_are_up() {
+        assert!(is_monitor_up(StatusCode::MOVED_PERMANENTLY));
+        assert!(is_monitor_up(StatusCode::FOUND));
+        assert!(is_monitor_up(StatusCode::TEMPORARY_REDIRECT));
+    }
+
+    #[test]
+    fn client_errors_mean_the_server_is_alive() {
+        assert!(is_monitor_up(StatusCode::BAD_REQUEST));
+        assert!(is_monitor_up(StatusCode::UNAUTHORIZED));
+        assert!(is_monitor_up(StatusCode::FORBIDDEN));
+        assert!(is_monitor_up(StatusCode::NOT_FOUND));
+        assert!(is_monitor_up(StatusCode::TOO_MANY_REQUESTS));
+    }
+
+    #[test]
+    fn server_errors_are_down() {
+        assert!(!is_monitor_up(StatusCode::INTERNAL_SERVER_ERROR));
+        assert!(!is_monitor_up(StatusCode::BAD_GATEWAY));
+        assert!(!is_monitor_up(StatusCode::SERVICE_UNAVAILABLE));
+        assert!(!is_monitor_up(StatusCode::GATEWAY_TIMEOUT));
+    }
+
+    #[test]
+    fn boundary_between_4xx_and_5xx() {
+        assert!(is_monitor_up(StatusCode::from_u16(499).unwrap()));
+        assert!(!is_monitor_up(StatusCode::from_u16(500).unwrap()));
+        assert!(!is_monitor_up(StatusCode::from_u16(599).unwrap()));
     }
 }

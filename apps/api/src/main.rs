@@ -42,7 +42,7 @@ async fn main() -> Result<(), std::io::Error> {
     let redis_url_display = config
         .redis_url
         .split('@')
-        .last()
+        .next_back()
         .unwrap_or("(hidden)")
         .to_string();
 

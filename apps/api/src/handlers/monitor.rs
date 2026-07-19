@@ -19,10 +19,10 @@ pub fn create_monitor(
     Data(store): Data<&Arc<Store>>,
     req: &Request,
 ) -> Result<(StatusCode, Json<CreateMonitorResponse>), StatusCode> {
-    let mut conn = store
-        .pool
-        .get()
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let mut conn = store.pool.get().map_err(|e| {
+        tracing::error!(error = %e, "failed to get DB connection from pool");
+        StatusCode::INTERNAL_SERVER_ERROR
+    })?;
 
     let uid = req
         .extensions()
@@ -41,7 +41,10 @@ pub fn create_monitor(
     let monitor = Store::create_monitor(&mut conn, new_monitor).map_err(|err| match err {
         StoreError::Conflict => StatusCode::CONFLICT,
         StoreError::NotFound => StatusCode::NOT_FOUND,
-        _ => StatusCode::INTERNAL_SERVER_ERROR,
+        _ => {
+            tracing::error!(error = ?err, "store operation failed");
+            StatusCode::INTERNAL_SERVER_ERROR
+        }
     })?;
 
     Ok((
@@ -57,10 +60,10 @@ pub fn get_monitor(
     Data(store): Data<&Arc<Store>>,
     req: &Request,
 ) -> Result<(StatusCode, Json<Vec<GetMonitorResponse>>), StatusCode> {
-    let mut conn = store
-        .pool
-        .get()
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let mut conn = store.pool.get().map_err(|e| {
+        tracing::error!(error = %e, "failed to get DB connection from pool");
+        StatusCode::INTERNAL_SERVER_ERROR
+    })?;
 
     let uid = req
         .extensions()
@@ -69,7 +72,10 @@ pub fn get_monitor(
 
     let monitors = Store::list_monitors_by_user(&mut conn, *uid).map_err(|err| match err {
         StoreError::NotFound => StatusCode::NOT_FOUND,
-        _ => StatusCode::INTERNAL_SERVER_ERROR,
+        _ => {
+            tracing::error!(error = ?err, "store operation failed");
+            StatusCode::INTERNAL_SERVER_ERROR
+        }
     })?;
 
     let response: Vec<GetMonitorResponse> = monitors
@@ -94,10 +100,10 @@ pub fn pause_monitor(
     req: &Request,
     Path(monitor_id): Path<Uuid>,
 ) -> Result<(StatusCode, Json<MonitorActionResponse>), StatusCode> {
-    let mut conn = store
-        .pool
-        .get()
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let mut conn = store.pool.get().map_err(|e| {
+        tracing::error!(error = %e, "failed to get DB connection from pool");
+        StatusCode::INTERNAL_SERVER_ERROR
+    })?;
 
     let uid = req
         .extensions()
@@ -106,7 +112,10 @@ pub fn pause_monitor(
 
     Store::pause_monitor(&mut conn, monitor_id, *uid).map_err(|err| match err {
         StoreError::NotFound => StatusCode::NOT_FOUND,
-        _ => StatusCode::INTERNAL_SERVER_ERROR,
+        _ => {
+            tracing::error!(error = ?err, "store operation failed");
+            StatusCode::INTERNAL_SERVER_ERROR
+        }
     })?;
 
     Ok((
@@ -123,10 +132,10 @@ pub fn resume_monitor(
     req: &Request,
     Path(monitor_id): Path<Uuid>,
 ) -> Result<(StatusCode, Json<MonitorActionResponse>), StatusCode> {
-    let mut conn = store
-        .pool
-        .get()
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let mut conn = store.pool.get().map_err(|e| {
+        tracing::error!(error = %e, "failed to get DB connection from pool");
+        StatusCode::INTERNAL_SERVER_ERROR
+    })?;
 
     let uid = req
         .extensions()
@@ -135,7 +144,10 @@ pub fn resume_monitor(
 
     Store::resume_monitor(&mut conn, monitor_id, *uid).map_err(|err| match err {
         StoreError::NotFound => StatusCode::NOT_FOUND,
-        _ => StatusCode::INTERNAL_SERVER_ERROR,
+        _ => {
+            tracing::error!(error = ?err, "store operation failed");
+            StatusCode::INTERNAL_SERVER_ERROR
+        }
     })?;
 
     Ok((
@@ -152,10 +164,10 @@ pub fn delete_monitor(
     req: &Request,
     Path(monitor_id): Path<Uuid>,
 ) -> Result<StatusCode, StatusCode> {
-    let mut conn = store
-        .pool
-        .get()
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let mut conn = store.pool.get().map_err(|e| {
+        tracing::error!(error = %e, "failed to get DB connection from pool");
+        StatusCode::INTERNAL_SERVER_ERROR
+    })?;
 
     let uid = req
         .extensions()
@@ -164,7 +176,10 @@ pub fn delete_monitor(
 
     Store::delete_monitor(&mut conn, monitor_id, *uid).map_err(|err| match err {
         StoreError::NotFound => StatusCode::NOT_FOUND,
-        _ => StatusCode::INTERNAL_SERVER_ERROR,
+        _ => {
+            tracing::error!(error = ?err, "store operation failed");
+            StatusCode::INTERNAL_SERVER_ERROR
+        }
     })?;
 
     Ok(StatusCode::NO_CONTENT)
